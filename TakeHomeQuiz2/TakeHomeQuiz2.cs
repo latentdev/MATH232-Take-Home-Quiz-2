@@ -1,4 +1,5 @@
-﻿using Math;
+﻿using CommandLine;
+using Math;
 using System.Text;
 using static Math.WordOperationTable;
 
@@ -30,6 +31,26 @@ namespace TakeHomeQuiz2Project
             _wordToCodeword.WriteTable();
         }
 
+        internal void Question1(int wordBitDepth, int codewordBitDepth, Matrix encodingMatrix)
+        {
+            _wordBitDepth = wordBitDepth;
+            _codewordBitDepth = codewordBitDepth;
+            _encodingMatrix = encodingMatrix;
+            var header = "Word Bit Depth:";
+            Console.WriteLine($"{header.PadLeft(header.Length+4,' ')} {_wordBitDepth}");
+            Console.WriteLine($"Codeword Bit Depth: {_codewordBitDepth}\n");
+            Console.WriteLine($"Encoding Matrix:\n{_encodingMatrix.Stringify()}\n");
+            var words = Words.GetWords(_wordBitDepth).ToMatrices();
+
+            foreach (var word in words)
+            {
+                var codeword = word.Multiply(_encodingMatrix).ToBinaryMatrix();
+                _wordToCodeword.Add(word, codeword);
+                _codewordToWord.Add(codeword, word);
+            }
+            _wordToCodeword.WriteTable();
+        }
+
         public void Question2()
         {
             var matrices = _wordToCodeword.Values.ToList();
@@ -37,34 +58,79 @@ namespace TakeHomeQuiz2Project
             var bits = new double[1, numOfBits];
             for (int i = 0; i < numOfBits; i++)
             {
-               bits[0, i] = 1;
+               bits[0, i] = 0;
             }
-            var multiplicativeIdentity = new Matrix(bits);
-            var hasIdentity = HasIdentity(matrices, multiplicativeIdentity);
-            Console.WriteLine($"Identity: {(hasIdentity ? $"yes {multiplicativeIdentity.Stringify()}" : "no")}");
+            var identity = new Matrix(bits);
+            var hasIdentity = HasIdentity(matrices, identity);
+            Console.WriteLine($"Identity: {(hasIdentity ? $"yes {identity.Stringify()}" : "no")}");
             List<Matrix> elementsWithoutInverses;
             Dictionary<Matrix,Matrix> elementsWithInverses;
-            var hasInverses = HasInverses(matrices, multiplicativeIdentity, out elementsWithoutInverses, out elementsWithInverses);
-            Console.Write($"Inverse: {(hasInverses?"yes":"no")}");
+            var hasInverses = HasInverses(matrices, identity, out elementsWithoutInverses, out elementsWithInverses);
+            Console.Write($"Inverses: {(hasInverses?"yes":"no")}");
             if(!hasInverses)
             {
                 Console.WriteLine($" Elements without an inverse: {elementsWithoutInverses.Stringify()}");
             }
             else
             {
-                Console.WriteLine("Inverses: ");
+                Console.WriteLine();
                 foreach (var operands in elementsWithInverses)
                 {
-                    Console.WriteLine(Words.GetOperationString(operands.Key, operands.Value, operands.Key.AND(operands.Value), Operation.AND));
+                    Console.WriteLine(Words.GetOperationString(operands.Key, operands.Value, operands.Key.XOR(operands.Value), Operation.XOR));
                 }
             }
 
         }
 
+        internal void ParseArguments(string[] args)
+        {
+            try
+            {
+                Parser.Default.ParseArguments<Options>(args)
+                    .WithParsed(RunQuiz)
+                    .WithNotParsed(HandleParseError);
+            }
+            catch (Exception ae) //was ArgumentException
+            {
+                Console.WriteLine($"{ae.Message}\n\n{ae.StackTrace}");
+            }
+        }
+
+        private void RunQuiz(Options args)
+        {
+            if(args.WordBitDepth != 0 && args.CodewordBitDepth != 0 && !args.EncodingMatrix.Equals(String.Empty))
+            {
+                var matrix = new Matrix(args.WordBitDepth, args.CodewordBitDepth, args.EncodingMatrix);
+                Question1(args.WordBitDepth, args.CodewordBitDepth, matrix);
+            }
+            else 
+            {
+                Question1();
+            }
+            Question2();
+        }
+
+        /// <summary>
+        /// Handles any errors in parsing startup arguments.
+        /// </summary>
+        /// <param name="errors"></param>
+        private static void HandleParseError(IEnumerable<Error> errors)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+
+            stringBuilder.AppendLine("Error occured parsing arguments");
+            foreach (var error in errors)
+            {
+                stringBuilder.AppendLine($"Error: {error.Tag}");
+            }
+            stringBuilder.AppendLine("Application will now exit.");
+            Console.WriteLine(stringBuilder.ToString());
+        }
+
         #endregion
 
         #region Private Functions
-        
+
         //private bool IsGroup(bool hasIdentity, bool hasInverses, bool isClosed)
         //{
 
@@ -106,14 +172,15 @@ namespace TakeHomeQuiz2Project
 
         private bool HasInverse(Matrix element, List<Matrix> matrices, Matrix identity, out Matrix inverse)
         {
+            bool foundInverse = false;
             foreach (var matrix in matrices)
             {
-                var product = element.AND(matrix).ToBinaryMatrix();
+                var product = element.XOR(matrix).ToBinaryMatrix();
                 var isInverse = product.Equals(identity);
                 if (isInverse)
                 {
-                    inverse = product;
-                    return true;//Found an inverse.
+                    inverse = matrix;
+                    return true;
                 }
             }
             inverse = identity;

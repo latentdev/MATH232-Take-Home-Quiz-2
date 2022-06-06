@@ -62,7 +62,28 @@ namespace Math
                     var matrix2_value = matrix2.Values[i, j];
                     if ((matrix1_value != 1 && matrix1_value != 0) || (matrix2_value != 1 && matrix2_value != 0)) // make sure both values are binary
                         throw new InvalidOperationException("OR operation can only be performed on binary matrices");
-                    result.Values[i, j] = Convert.ToDouble(Convert.ToInt16(matrix1_value) | Convert.ToInt16(matrix2_value));
+                    result.Values[i, j] = Convert.ToDouble(Convert.ToInt32(matrix1_value) | Convert.ToInt32(matrix2_value));
+                }
+            }
+            return result;
+        }
+
+        public static Matrix XOR(this Matrix matrix1, Matrix matrix2)
+        {
+            if (matrix1.Rows != matrix2.Rows || matrix1.Columns != matrix2.Columns)
+                throw new InvalidOperationException("OR operation can only performed on matrices with the same dimensions.");
+
+            var result = new Matrix(matrix1.Rows, matrix1.Columns);
+
+            for (int i = 0; i < matrix1.Rows; i++)
+            {
+                for (int j = 0; j < matrix2.Columns; j++)
+                {
+                    var matrix1_value = matrix1.Values[i, j];
+                    var matrix2_value = matrix2.Values[i, j];
+                    if ((matrix1_value != 1 && matrix1_value != 0) || (matrix2_value != 1 && matrix2_value != 0)) // make sure both values are binary
+                        throw new InvalidOperationException("OR operation can only be performed on binary matrices");
+                    result.Values[i, j] = Convert.ToDouble(Convert.ToInt32(matrix1_value) ^ Convert.ToInt32(matrix2_value));
                 }
             }
             return result;
@@ -83,7 +104,7 @@ namespace Math
                     var matrix2_value = matrix2.Values[i, j];
                     if ((matrix1_value != 1 && matrix1_value != 0) || (matrix2_value != 1 && matrix2_value != 0)) // make sure both values are binary
                         throw new InvalidOperationException("OR operation can only be performed on binary matrices");
-                    result.Values[i, j] = Convert.ToDouble(Convert.ToInt16(matrix1_value) & Convert.ToInt16(matrix2_value));
+                    result.Values[i, j] = Convert.ToDouble(Convert.ToInt32(matrix1_value) & Convert.ToInt32(matrix2_value));
                 }
             }
             return result;
@@ -155,7 +176,8 @@ namespace Math
         public enum Operation
         {
             AND,
-            OR
+            OR,
+            XOR
         }
         public static string OperationTable(List<Matrix> words1, List<Matrix> words2, Operation operation)
         {
@@ -175,6 +197,9 @@ namespace Math
                             break;
                         case Operation.OR:
                             table.Append(words1[i].OR(words2[j]).ToBinaryMatrix().Stringify());
+                            break;
+                        case Operation.XOR:
+                            table.Append(words1[i].XOR(words2[j]).ToBinaryMatrix().Stringify());
                             break;
                     }
                     if (j == words2.Count - 1)

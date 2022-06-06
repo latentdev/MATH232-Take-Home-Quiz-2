@@ -24,6 +24,22 @@ namespace Math
             Columns = values.GetLength(1);
         }
 
+        public Matrix(int rows, int columns, string valuesString)
+        {
+            Rows = rows;
+            Columns = columns;
+            var values = valuesString.Split(',');
+            if (values.Length != Rows * Columns)
+                throw new ArgumentException($"Number of values doesn't equal dimensions. Rows*Columns: {Rows * Columns} Values: {values.Length}");
+            Values = new double[Rows,Columns];
+            var index = 0;
+            for (int i = 0; i < Rows; i++)
+                for (int j = 0; j < Columns; j++)
+                {
+                    Values[i, j] = Convert.ToInt32(values[index++]);
+                }
+        }
+
         public override bool Equals(object? obj)
         {
             if(obj.GetType() != this.GetType())
