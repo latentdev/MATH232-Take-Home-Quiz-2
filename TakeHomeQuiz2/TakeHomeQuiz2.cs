@@ -22,13 +22,30 @@ namespace TakeHomeQuiz2Project
 
         #region Quiz Questions
 
-        internal void Question1()
+        internal void Setup()
         {
             WriteHeader("[Setup]");
             _wordBitDepth = GetBitDepth("word");
             _codewordBitDepth = GetBitDepth("codeword");
             _encodingMatrix = GetEncodingMatrix(_wordBitDepth, _codewordBitDepth);
+        }
 
+        internal void Setup(int wordBitDepth, int codewordBitDepth, Matrix encodingMatrix)
+        {
+            WriteHeader("[Setup]");
+            _wordBitDepth = wordBitDepth;
+            _codewordBitDepth = codewordBitDepth;
+            _encodingMatrix = encodingMatrix;
+            var header = "Word Bit Depth:";
+            Console.WriteLine($"{header.PadLeft(header.Length + 4, ' ')} {_wordBitDepth}");
+            Console.WriteLine($"Codeword Bit Depth: {_codewordBitDepth}\n");
+            Console.WriteLine($"Encoding Matrix:\n{_encodingMatrix.Stringify()}\n");
+            Console.Write("Press enter to begin Take Home Quiz 2...");
+            Console.ReadLine();
+        }
+
+        internal void Question1()
+        {
             WriteHeader("[Question 1]");
             var words = Words.GetWords(_wordBitDepth).ToMatrices();
             
@@ -39,28 +56,9 @@ namespace TakeHomeQuiz2Project
                 _codewordToWord.Add(codeword,word);
             }
             _wordToCodeword.WriteTable();
-        }
-
-        internal void Question1(int wordBitDepth, int codewordBitDepth, Matrix encodingMatrix)
-        {
-            WriteHeader("[Setup]");
-            _wordBitDepth = wordBitDepth;
-            _codewordBitDepth = codewordBitDepth;
-            _encodingMatrix = encodingMatrix;
-            var header = "Word Bit Depth:";
-            Console.WriteLine($"{header.PadLeft(header.Length+4,' ')} {_wordBitDepth}");
-            Console.WriteLine($"Codeword Bit Depth: {_codewordBitDepth}\n");
-            Console.WriteLine($"Encoding Matrix:\n{_encodingMatrix.Stringify()}\n");
-            WriteHeader("[Question 1]");
-            var words = Words.GetWords(_wordBitDepth).ToMatrices();
-
-            foreach (var word in words)
-            {
-                var codeword = word.Multiply(_encodingMatrix).ToBinaryMatrix();
-                _wordToCodeword.Add(word, codeword);
-                _codewordToWord.Add(codeword, word);
-            }
-            _wordToCodeword.WriteTable();
+            Console.Write("Press enter to continue to Question 2...");
+            Console.ReadLine();
+            Console.WriteLine();
         }
 
         internal void Question2()
@@ -130,7 +128,13 @@ namespace TakeHomeQuiz2Project
                 if (!_isClosed)
                     Console.WriteLine(" -The set is not closed");
                 Console.WriteLine();
+                Console.WriteLine("Because set is not a group Questions 3-5 aren't solvable.");
+                Console.WriteLine("Thanks for trying out the application!");
+                Environment.Exit(0);
             }
+            Console.Write("Press enter to continue to Question 3...");
+            Console.ReadLine();
+            Console.WriteLine();
         }
 
         internal void Question3()
@@ -149,12 +153,15 @@ namespace TakeHomeQuiz2Project
                 distances.RemoveAll(x => x == 0);//remove all zero distances
                 Console.WriteLine($"\nMinimum Distance (k): {distances.Min()}");
                 Console.WriteLine($"Minimum number of errors that can be detected (k-1): {distances.Min() - 1}");
-                Console.WriteLine($"Minimum number of errors that can be detected ((k-1)/2): {(distances.Min() - 1) / 2}");
+                Console.WriteLine($"Minimum number of errors that can be corrected ((k-1)/2): {(distances.Min() - 1) / 2}");
             }
             else
             {
                 Console.WriteLine("Set is not closed. Error detection cannot occur.");
             }
+            Console.WriteLine();
+            Console.Write("Press enter to continue to Question 4...");
+            Console.ReadLine();
             Console.WriteLine();
         }
 
@@ -168,6 +175,9 @@ namespace TakeHomeQuiz2Project
             var cosetLeaders = new List<Matrix>();
             _codeWordLookupTable = GetTableOfCosets(ref cosetLeaders, numberOfCosetLeadersRequired);
             WordOperationTable.Write(cosetLeaders, _wordToCodeword.Values.ToList(),Operation.XOR);
+            Console.WriteLine();
+            Console.Write("Press enter to continue to Question 5...");
+            Console.ReadLine();
             Console.WriteLine();
         }
 
@@ -232,15 +242,16 @@ namespace TakeHomeQuiz2Project
 
         private void RunQuiz(Options args)
         {
-            if (args.WordBitDepth != 0 && args.CodewordBitDepth != 0 && !args.EncodingMatrix.Equals(String.Empty))
+            if (args.WordBitDepth != 0 && args.CodewordBitDepth != 0 && !args.EncodingMatrix.Equals(String.Empty)) // Arguments were provided
             {
                 var matrix = new Matrix(args.WordBitDepth, args.CodewordBitDepth, args.EncodingMatrix);
-                Question1(args.WordBitDepth, args.CodewordBitDepth, matrix);
+                Setup(args.WordBitDepth, args.CodewordBitDepth, matrix);
             }
             else
             {
-                Question1();
+                Setup();
             }
+            Question1();
             Question2();
             Question3();
             Question4();
