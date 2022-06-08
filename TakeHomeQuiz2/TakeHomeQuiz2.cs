@@ -42,6 +42,7 @@ namespace TakeHomeQuiz2Project
             Console.WriteLine($"Encoding Matrix:\n{_encodingMatrix.Stringify()}\n");
             Console.Write("Press enter to begin Take Home Quiz 2...");
             Console.ReadLine();
+            Console.WriteLine();
         }
 
         internal void Question1()
@@ -170,7 +171,7 @@ namespace TakeHomeQuiz2Project
             WriteHeader("[Question 4]");
             var possibleCombinations = System.Math.Pow(2, _codewordBitDepth);
             var numberOfCosetLeadersRequired =(int) possibleCombinations / _wordToCodeword.Values.Count;
-            Console.WriteLine($"Possible combination of 7 bits: {possibleCombinations}");
+            Console.WriteLine($"Possible combinations of 7 bits: {possibleCombinations}");
             Console.WriteLine($"Number of distinct cosets required: {numberOfCosetLeadersRequired}");
             var cosetLeaders = new List<Matrix>();
             _codeWordLookupTable = GetTableOfCosets(ref cosetLeaders, numberOfCosetLeadersRequired);
@@ -198,7 +199,7 @@ namespace TakeHomeQuiz2Project
                 Console.WriteLine($"Looking up {codeword.Stringify()}");
                 var entry = _codeWordLookupTable[codeword];
                 var word = _codewordToWord[entry.Item2];
-                Console.WriteLine($"{codeword.Stringify()} -> {entry.Item2.Stringify()} -> {word.Stringify()}");
+                Console.WriteLine($"{codeword.Stringify()} -> {entry.Item2.Stringify()} -> {word.Stringify()}\n");
                 
             }
             while (true); //Reached the end of the program. Loop till user wants to quit.
