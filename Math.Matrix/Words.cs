@@ -110,7 +110,7 @@ namespace Math
             return result;
         }
 
-        public static int GetMinDistance(this Matrix matrix)
+        public static int GetDistance(this Matrix matrix)
         {
             int distance = 0;
             for (int i = 0; i < matrix.Rows; i++)
@@ -138,9 +138,45 @@ namespace Math
             return result.Remove(result.Length - 1, 1);
         }
 
-        public static string GetOperationString(Matrix matrix1, Matrix matrix2, Matrix result, Operation operation)
+        public static bool IsValidWord(this string wordString, int bits)
         {
-            return $"{matrix1.Stringify()} {(operation == Operation.AND ? "*" : "+")} {matrix2.Stringify()} = {result.Stringify()}";
+            wordString = wordString.Trim().Replace(",","");
+            var isCorrectDepth = bits==wordString.Length;
+            var isBinaryString = IsBinaryString(wordString);
+            return (isCorrectDepth && isBinaryString);
+        }
+
+        private static bool IsBinaryString(string wordString)
+        {
+            for (int i = 0; i < wordString.Length; i++)
+            {
+                if(!(wordString[i].Equals('1') || wordString[i].Equals('0')))
+                    return false;
+            }
+            return true;
+        }
+
+        public static Matrix PerformOperation(this Matrix matrix1, Matrix matrix2, Operation operation, bool writeOperation)
+        {
+            Matrix result = null;
+            switch (operation)
+            {
+                case Operation.AND:
+                    result = matrix1.AND(matrix2);
+                    break;
+                case Operation.OR:
+                    result = matrix1.OR(matrix2);
+                    break;
+                case Operation.XOR:
+                    result = matrix1.XOR(matrix2);
+                    break;
+                default: throw new ArgumentException($"Invalid operation requested. Operation: {operation}");
+            }
+            if(writeOperation)
+            {
+                Console.WriteLine($"{matrix1.Stringify()} {(operation == Operation.AND ? "*" : "+")} {matrix2.Stringify()} = {result.Stringify()}");
+            }
+            return result;
         }
 
         public static string ToTableString(this Dictionary<Matrix, Matrix> wordToWordDict)
@@ -169,6 +205,21 @@ namespace Math
             Console.WriteLine(wordToWordDict.ToTableString());
         }
 
+        public static List<Matrix> OperateOnList(this Matrix matrix1, List<Matrix> matrices, ref List<Tuple<Matrix, Matrix>> operands, Operation operation, bool writeOperation)
+        {
+            List<Matrix> results = new List<Matrix>();
+
+            if (matrices.Count < 1) //gotta have at least one matrices to perform an operation
+                return results;
+
+            foreach (var matrix2 in matrices)
+            {
+                operands.Add(Tuple.Create(matrix1, matrix2));
+                results.Add(matrix1.PerformOperation(matrix2, operation, writeOperation));
+            }
+            return results;
+        }
+
     }
 
     public static class WordOperationTable
@@ -183,10 +234,10 @@ namespace Math
         {
             var betweenColumnPadding = 1;
             var table = new StringBuilder();
-            table.AppendLine(GetFirstRow(words1[0].ConsoleWidth + 1, betweenColumnPadding, words2));
+            table.AppendLine(GetFirstRow(words1[0].ConsoleWidth + 2, betweenColumnPadding, words2));
             for (int i = 0; i < words1.Count; i++)
             {
-                table.Append(words1[i].Stringify() + "|");
+                table.Append(words1[i].Stringify() + " |");
                 for (int j = 0; j < words2.Count; j++)
                 {
                     table.Append("".PadLeft(betweenColumnPadding, ' '));
@@ -208,6 +259,31 @@ namespace Math
             }
             return table.ToString();
         }
+
+        public static Dictionary<Matrix,Tuple<Matrix,Matrix>> GetOperationTableLookup(this List<Matrix> words1, List<Matrix> words2, Operation operation)
+        {
+            var table = new Dictionary<Matrix,Tuple<Matrix,Matrix>>();
+            for (int i = 0; i < words1.Count; i++)
+            {
+                for (int j = 0; j < words2.Count; j++)
+                {
+                    switch (operation)
+                    {
+                        case Operation.AND:
+                            table.Add(words1[i].AND(words2[j]).ToBinaryMatrix(), Tuple.Create(words1[i], words2[j]));
+                            break;
+                        case Operation.OR:
+                            table.Add(words1[i].OR(words2[j]).ToBinaryMatrix(), Tuple.Create(words1[i], words2[j]));
+                            break;
+                        case Operation.XOR:
+                            table.Add(words1[i].XOR(words2[j]).ToBinaryMatrix(), Tuple.Create(words1[i], words2[j]));
+                            break;
+                    }
+                }
+            }
+            return table;
+        }
+
 
 
 

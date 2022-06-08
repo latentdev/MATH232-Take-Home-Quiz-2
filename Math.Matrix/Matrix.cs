@@ -8,7 +8,7 @@ namespace Math
         public int Columns { get; set; }
         public double[,] Values { get; set; }
 
-        public int ConsoleWidth { get => Columns + Columns - 1 + 2; } // number of commas = Columns-1, num of Staves = 2
+        public int ConsoleWidth { get => Columns + 2; } // number of commas = Columns-1, num of Staves = 2
 
         public Matrix(int rows, int columns)
         {
@@ -57,6 +57,11 @@ namespace Math
             }
             return true;
         }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Rows, Columns);
+        }
     }
 
     public static class MatrixExtensions
@@ -98,7 +103,7 @@ namespace Math
             {
                 for (int columns = 0; columns < matrix.Columns; columns++)
                 {
-                    matrix.Values[row, columns] = matrix.Values[row, columns] > 0 ? 1 : 0;
+                    matrix.Values[row, columns] = matrix.Values[row, columns] % 2;
                 }
             }
             return matrix;
@@ -115,7 +120,7 @@ namespace Math
                     stringBuilder.Append(matrix.Values[i, j]);
                     if (j != matrix.Columns - 1)
                     {
-                        stringBuilder.Append(",");
+                        stringBuilder.Append("");
                     }
                 }
                 stringBuilder.Append(i == matrix.Rows - 1 ? "]" : $"]{Environment.NewLine}");

@@ -10,16 +10,26 @@ namespace TakeHomeQuiz2Project
         private int _wordBitDepth = 0;
         private int _codewordBitDepth = 0;
         private Matrix _encodingMatrix;
+        private bool _isClosed = false;
+        private bool _isGroup = false;
         private Dictionary<Matrix, Matrix> _wordToCodeword = new Dictionary<Matrix, Matrix>();
         private Dictionary<Matrix, Matrix> _codewordToWord = new Dictionary<Matrix, Matrix>();
+        private Dictionary<Matrix, Tuple<Matrix, Matrix>> _codeWordLookupTable = new Dictionary<Matrix, Tuple<Matrix, Matrix>>();
+        private ConsoleColor _defaultForeground = Console.ForegroundColor;
+        private ConsoleColor _defaultBackgroundColor = Console.BackgroundColor;
+        private ConsoleColor _questionForegroundColor = ConsoleColor.White;
+        private ConsoleColor _questionBackgroundColor = ConsoleColor.DarkGreen;
 
         #region Quiz Questions
 
         internal void Question1()
         {
+            WriteHeader("[Setup]");
             _wordBitDepth = GetBitDepth("word");
             _codewordBitDepth = GetBitDepth("codeword");
             _encodingMatrix = GetEncodingMatrix(_wordBitDepth, _codewordBitDepth);
+
+            WriteHeader("[Question 1]");
             var words = Words.GetWords(_wordBitDepth).ToMatrices();
             
             foreach (var word in words)
@@ -33,6 +43,7 @@ namespace TakeHomeQuiz2Project
 
         internal void Question1(int wordBitDepth, int codewordBitDepth, Matrix encodingMatrix)
         {
+            WriteHeader("[Setup]");
             _wordBitDepth = wordBitDepth;
             _codewordBitDepth = codewordBitDepth;
             _encodingMatrix = encodingMatrix;
@@ -40,6 +51,7 @@ namespace TakeHomeQuiz2Project
             Console.WriteLine($"{header.PadLeft(header.Length+4,' ')} {_wordBitDepth}");
             Console.WriteLine($"Codeword Bit Depth: {_codewordBitDepth}\n");
             Console.WriteLine($"Encoding Matrix:\n{_encodingMatrix.Stringify()}\n");
+            WriteHeader("[Question 1]");
             var words = Words.GetWords(_wordBitDepth).ToMatrices();
 
             foreach (var word in words)
@@ -51,9 +63,12 @@ namespace TakeHomeQuiz2Project
             _wordToCodeword.WriteTable();
         }
 
-        public void Question2()
+        internal void Question2()
         {
+            WriteHeader("[Question 2]");
             var matrices = _wordToCodeword.Values.ToList();
+
+            //Check if identity exists
             var numOfBits = matrices.First().Columns;
             var bits = new double[1, numOfBits];
             for (int i = 0; i < numOfBits; i++)
@@ -63,6 +78,8 @@ namespace TakeHomeQuiz2Project
             var identity = new Matrix(bits);
             var hasIdentity = HasIdentity(matrices, identity);
             Console.WriteLine($"Identity: {(hasIdentity ? $"yes {identity.Stringify()}" : "no")}");
+
+            //Check if each element has an inverse
             List<Matrix> elementsWithoutInverses;
             Dictionary<Matrix,Matrix> elementsWithInverses;
             var hasInverses = HasInverses(matrices, identity, out elementsWithoutInverses, out elementsWithInverses);
@@ -76,11 +93,111 @@ namespace TakeHomeQuiz2Project
                 Console.WriteLine();
                 foreach (var operands in elementsWithInverses)
                 {
-                    Console.WriteLine(Words.GetOperationString(operands.Key, operands.Value, operands.Key.XOR(operands.Value), Operation.XOR));
+                    Words.PerformOperation(operands.Key, operands.Value, Operation.XOR, true);
                 }
             }
 
+            //Check if set is closed
+            List<Tuple<Matrix, Matrix>> notInSet = new List<Tuple<Matrix, Matrix>>();
+            _isClosed = IsClosed(matrices, ref notInSet);
+
+            if(_isClosed)
+            {
+                Console.WriteLine($"Closed: yes");
+                WriteAllTableOperations(matrices);
+            }
+            else
+            {
+                Console.WriteLine($"Closed: no\nOperations that produced an element not in the set:");
+                foreach (var operands in notInSet)
+                {
+                    operands.Item1.PerformOperation(operands.Item2, Operation.XOR, true);
+                }
+            }
+
+            _isGroup = (hasIdentity && hasInverses && _isClosed);
+            if(_isGroup)
+            {
+                Console.WriteLine("\nIt is a group because the set:\n -Has an identity element\n -Each element has an inverse\n -The set is closed\n");
+            }
+            else
+            {
+                Console.WriteLine("\nIt is not a group because the set:");
+                if (!hasIdentity)
+                    Console.WriteLine(" -Does not have an identity element");
+                if (!hasInverses)
+                    Console.WriteLine(" -There are elements that do not have inverses");
+                if (!_isClosed)
+                    Console.WriteLine(" -The set is not closed");
+                Console.WriteLine();
+            }
         }
+
+        internal void Question3()
+        {
+            WriteHeader("[Question 3]");
+            var distances = new List<int>();
+            if(_isClosed)
+            {
+                Console.WriteLine("Because set is closed all possible combinations are represented in the set.");
+                foreach (var matrix in _codewordToWord.Keys.ToList())
+                {
+                    var distance = matrix.GetDistance();
+                    distances.Add(distance);
+                    matrix.WriteLine($" Distance: {distance}");
+                }            
+                distances.RemoveAll(x => x == 0);//remove all zero distances
+                Console.WriteLine($"\nMinimum Distance (k): {distances.Min()}");
+                Console.WriteLine($"Minimum number of errors that can be detected (k-1): {distances.Min() - 1}");
+                Console.WriteLine($"Minimum number of errors that can be detected ((k-1)/2): {(distances.Min() - 1) / 2}");
+            }
+            else
+            {
+                Console.WriteLine("Set is not closed. Error detection cannot occur.");
+            }
+            Console.WriteLine();
+        }
+
+        internal void Question4()
+        {
+            WriteHeader("[Question 4]");
+            var possibleCombinations = System.Math.Pow(2, _codewordBitDepth);
+            var numberOfCosetLeadersRequired =(int) possibleCombinations / _wordToCodeword.Values.Count;
+            Console.WriteLine($"Possible combination of 7 bits: {possibleCombinations}");
+            Console.WriteLine($"Number of distinct cosets required: {numberOfCosetLeadersRequired}");
+            var cosetLeaders = new List<Matrix>();
+            _codeWordLookupTable = GetTableOfCosets(ref cosetLeaders, numberOfCosetLeadersRequired);
+            WordOperationTable.Write(cosetLeaders, _wordToCodeword.Values.ToList(),Operation.XOR);
+            Console.WriteLine();
+        }
+
+        internal void Question5()
+        {
+            WriteHeader("[Question 5]");
+            string input = "";
+            do
+            {
+                input = GetCodeWord();
+                if (input.ToLower().Equals("x"))
+                {
+                    Console.WriteLine("Thanks for trying out the application!");
+                    return;
+                }
+                input = string.Join<char>(",", input);
+                var codeword = new Matrix(1,_codewordBitDepth, input);
+                Console.WriteLine($"Looking up {codeword.Stringify()}");
+                var entry = _codeWordLookupTable[codeword];
+                var word = _codewordToWord[entry.Item2];
+                Console.WriteLine($"{codeword.Stringify()} -> {entry.Item2.Stringify()} -> {word.Stringify()}");
+                
+            }
+            while (true); //Reached the end of the program. Loop till user wants to quit.
+        }
+
+
+        #endregion
+
+        #region Private Functions
 
         internal void ParseArguments(string[] args)
         {
@@ -94,20 +211,6 @@ namespace TakeHomeQuiz2Project
             {
                 Console.WriteLine($"{ae.Message}\n\n{ae.StackTrace}");
             }
-        }
-
-        private void RunQuiz(Options args)
-        {
-            if(args.WordBitDepth != 0 && args.CodewordBitDepth != 0 && !args.EncodingMatrix.Equals(String.Empty))
-            {
-                var matrix = new Matrix(args.WordBitDepth, args.CodewordBitDepth, args.EncodingMatrix);
-                Question1(args.WordBitDepth, args.CodewordBitDepth, matrix);
-            }
-            else 
-            {
-                Question1();
-            }
-            Question2();
         }
 
         /// <summary>
@@ -127,14 +230,129 @@ namespace TakeHomeQuiz2Project
             Console.WriteLine(stringBuilder.ToString());
         }
 
-        #endregion
+        private void RunQuiz(Options args)
+        {
+            if (args.WordBitDepth != 0 && args.CodewordBitDepth != 0 && !args.EncodingMatrix.Equals(String.Empty))
+            {
+                var matrix = new Matrix(args.WordBitDepth, args.CodewordBitDepth, args.EncodingMatrix);
+                Question1(args.WordBitDepth, args.CodewordBitDepth, matrix);
+            }
+            else
+            {
+                Question1();
+            }
+            Question2();
+            Question3();
+            Question4();
+            Question5();
+        }
 
-        #region Private Functions
+        private string GetCodeWord()
+        {
+            var inputIsValid = false;
+            string input = "";
+            do
+            {
+                Console.Write($"Please enter a {_codewordBitDepth} bit codeword to look up or enter x to exit:");
+                input = Console.ReadLine();
+                if(input.ToLower().Equals("x"))
+                    return input;
+                inputIsValid = input.IsValidWord(_codewordBitDepth);
+                if (!inputIsValid)
+                {
+                    Console.WriteLine($"Invalid codeword entered. Please try again.");
+                }
+            } while (!inputIsValid);
+            return input;
+        }
 
-        //private bool IsGroup(bool hasIdentity, bool hasInverses, bool isClosed)
-        //{
+        private Dictionary<Matrix,Tuple<Matrix,Matrix>> GetTableOfCosets(ref List<Matrix> cosetLeaders, int numOfCosetLeadersRequired)
+        {
+            int value = 0;
+            int depth = _codewordBitDepth;
+            var allPotentialCosetLeaders = new List<Matrix>();
+            for (int i = 1; i <= _codewordBitDepth; i++)
+            {
+                var startingValue = (int)System.Math.Pow(2, i)-1;
+                allPotentialCosetLeaders.AddRange(GenerateCosetsLeaders(_codewordBitDepth, startingValue, depth--));
+                value += 1;
+            }
+            //Get initial coset lookup table
+            var index = _codewordBitDepth;
+            cosetLeaders.AddRange(allPotentialCosetLeaders.GetRange(0,index++)); //Load initial coset leaders
+            var operationLookupTable = cosetLeaders.GetOperationTableLookup(_wordToCodeword.Values.ToList(), Operation.XOR);
+            while(cosetLeaders.Count < numOfCosetLeadersRequired)
+            {
+                if(!operationLookupTable.ContainsKey(allPotentialCosetLeaders[index]))
+                {
+                    cosetLeaders.Add(allPotentialCosetLeaders[index]);
+                    operationLookupTable = cosetLeaders.GetOperationTableLookup(_wordToCodeword.Values.ToList(), Operation.XOR);
+                }
+                index++;
+            }
 
-        //}
+            return operationLookupTable;
+        }
+
+        private List<Matrix> GenerateCosetsLeaders(int bits, int startingValue, int depth)
+        {
+            var values = new List<double[]>();
+            for (int i = 0; i < depth; i++)
+            {
+                values.Add(Convert.ToString(startingValue, 2).PadLeft(bits, '0').ToBinary());
+                startingValue = startingValue << 1;//shift all bits to the left 1
+            }
+            return values.ToMatrices();
+        }
+
+        private bool IsClosed(List<Matrix> matrices, ref List<Tuple<Matrix,Matrix>> notInSet)
+        {
+            if (matrices.Count == 0)
+                return false;
+            var operands = new List<Tuple<Matrix,Matrix>>();
+            var results = new List<Matrix>();
+            var matricesCopy = matrices.ToList(); // make a copy of the list
+            foreach (var matrix in matrices)
+            {
+                results.AddRange(matrix.OperateOnList(matricesCopy, ref operands, Operation.XOR, false));
+                matricesCopy.Remove(matrix);
+            }
+            var elementsNotInSet = GetElementsNotInSet(matrices, results, operands);
+            if (elementsNotInSet.Count > 0)
+            {
+                foreach (var element in elementsNotInSet)
+                {
+                    notInSet.Add(element.Item1);
+                }
+                return false;
+            }
+            else
+                return true;
+        }
+
+        private List<Tuple<Tuple<Matrix,Matrix>,Matrix>> GetElementsNotInSet(List<Matrix> matrices, List<Matrix> results, List<Tuple<Matrix,Matrix>> operands)
+        {
+            var elementsNotInSet = new List<Tuple<Tuple<Matrix,Matrix>,Matrix>>();
+            for(int i = 0; i< results.Count; i++)
+            {
+                if (!matrices.Contains(results[i]))
+                    elementsNotInSet.Add(Tuple.Create(operands[i], results[i]));
+            }
+            return elementsNotInSet;
+
+        }
+
+        public void WriteAllTableOperations(List<Matrix> matrices)
+        {
+            var operands = new List<Tuple<Matrix, Matrix>>();
+            var results = new List<Matrix>();
+            var matricesCopy = matrices.ToList(); // make a copy of the list
+            foreach (var matrix in matrices)
+            {
+                results.AddRange(matrix.OperateOnList(matricesCopy, ref operands, Operation.XOR, true));
+                matricesCopy.Remove(matrix);
+            }
+        }
 
         private bool HasIdentity(List<Matrix> matrices, Matrix identity)
         {
@@ -269,6 +487,17 @@ namespace TakeHomeQuiz2Project
                 default:
                     return $"{rowCount}th";
             }
+        }
+
+        private void WriteHeader(string header)
+        {
+            Console.ForegroundColor = _questionForegroundColor;
+            Console.BackgroundColor = _questionBackgroundColor;
+            Console.Write(header);
+            Console.ForegroundColor = _defaultForeground;
+            Console.BackgroundColor = _defaultBackgroundColor;
+            Console.WriteLine();
+            Console.WriteLine();
         }
 
         #endregion
