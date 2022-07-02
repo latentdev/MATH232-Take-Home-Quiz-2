@@ -171,7 +171,7 @@ namespace TakeHomeQuiz2Project
             WriteHeader("[Question 4]");
             var possibleCombinations = System.Math.Pow(2, _codewordBitDepth);
             var numberOfCosetLeadersRequired =(int) possibleCombinations / _wordToCodeword.Values.Count;
-            Console.WriteLine($"Possible combinations of 7 bits: {possibleCombinations}");
+            Console.WriteLine($"Possible combinations of {_codewordBitDepth} bits: {possibleCombinations}");
             Console.WriteLine($"Number of distinct cosets required: {numberOfCosetLeadersRequired}");
             var cosetLeaders = new List<Matrix>();
             _codeWordLookupTable = GetTableOfCosets(ref cosetLeaders, numberOfCosetLeadersRequired);
@@ -285,9 +285,9 @@ namespace TakeHomeQuiz2Project
             var allPotentialCosetLeaders = new List<Matrix>();
             for (int i = 1; i <= _codewordBitDepth; i++)
             {
-                var startingValue = (int)System.Math.Pow(2, i)-1;
-                allPotentialCosetLeaders.AddRange(GenerateCosetsLeaders(_codewordBitDepth, startingValue, depth--));
-                value += 1;
+                    var startingValue = (int)System.Math.Pow(2, i) - 1;
+                    allPotentialCosetLeaders.AddRange(GenerateCosetsLeaders(_codewordBitDepth, startingValue, depth--));
+                    value += 1;
             }
             //Get initial coset lookup table
             var index = _codewordBitDepth;
@@ -295,12 +295,19 @@ namespace TakeHomeQuiz2Project
             var operationLookupTable = cosetLeaders.GetOperationTableLookup(_wordToCodeword.Values.ToList(), Operation.XOR);
             while(cosetLeaders.Count < numOfCosetLeadersRequired)
             {
+                                try
+                {
                 if(!operationLookupTable.ContainsKey(allPotentialCosetLeaders[index]))
                 {
                     cosetLeaders.Add(allPotentialCosetLeaders[index]);
                     operationLookupTable = cosetLeaders.GetOperationTableLookup(_wordToCodeword.Values.ToList(), Operation.XOR);
                 }
                 index++;
+                }
+                catch (Exception e)
+                {
+                    throw e;
+                }
             }
 
             return operationLookupTable;

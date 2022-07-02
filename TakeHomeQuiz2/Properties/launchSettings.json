@@ -2,7 +2,7 @@
   "profiles": {
     "TakeHomeQuiz2Project": {
       "commandName": "Project",
-      "commandLineArgs": "-w 3 -c 7 -e 1,0,0,1,0,0,1,0,1,0,0,1,0,1,0,0,1,0,0,1,1"
+      "commandLineArgs": "-w 2 -c 13 -e 1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1"
     }
   }
 }
